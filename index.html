@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>笑瞇瞇紫微斗數 - 人類世界攻略小魔法</title>
+    <!-- 引入外部函式庫 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --p-bg: #f7d7ff; --p-border: #4a1d96; }
+        body { font-family: 'Silkscreen', "Noto Sans TC", sans-serif; background-color: var(--p-bg); color: #1e293b; margin: 0; padding-bottom: 50px; }
+        .pixel-card { border: 4px solid var(--p-border); box-shadow: 6px 6px 0px 0px var(--p-border); background: white; }
+        .pixel-btn { border: 4px solid #000; box-shadow: 4px 4px 0px 0px #000; transition: all 0.1s; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .pixel-btn:active { box-shadow: 0px 0px 0px 0px #000; transform: translate(4px, 4px); }
+        h1, h2 { font-family: 'Press Start 2P', cursive; line-height: 1.5; }
+        .grid-bg { background-image: radial-gradient(#4a1d96 1px, transparent 1px); background-size: 20px 20px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Firebase 穩定載入 (Compat 模式) -->
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ⚙️ Firebase 配置 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9HsfmW3iNinFZD85XxMW9Om6valo3Nf8",
+            authDomain: "smiling-ziwei.firebaseapp.com",
+            projectId: "smiling-ziwei",
+            storageBucket: "smiling-ziwei.firebasestorage.app",
+            messagingSenderId: "447037749434",
+            appId: "1:447037749434:web:b3827105adac2ecfb22a83"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const appId = "smiling-ziwei-official";
+
+        // 圖標組件
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => { if(window.lucide) window.lucide.createIcons(); }, []);
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [isAuth, setIsAuth] = useState(false);
+            const [pass, setPass] = useState("");
+            const [bookings, setBookings] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [success, setSuccess] = useState(false);
+            const [form, setForm] = useState({ nickname: '', gender: '男', birthDate: '', service: '命盤解析', notes: '' });
+
+            useEffect(() => {
+                auth.signInAnonymously().catch(e => console.error(e));
+                return auth.onAuthStateChanged(u => setUser(u));
+            }, []);
+
+            useEffect(() => {
+                if (!user || !isAdmin || !isAuth) return;
+                const unsubscribe = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings')
+                    .onSnapshot(s => {
+                        const data = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                        setBookings(data.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+                    });
+                return () => unsubscribe();
+            }, [user, isAdmin, isAuth]);
+
+            const submit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                try {
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings').add({
+                        ...form, createdAt: firebase.firestore.FieldValue.serverTimestamp(), status: '未處理'
+                    });
+                    setSuccess(true);
+                    window.scrollTo(0, 0);
+                } catch(e) { alert("發送失敗！"); }
+                setLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen">
+                    <nav className="fixed top-0 w-full bg-[#f7d7ff] border-b-4 border-purple-900 z-50 p-4 flex justify-between items-center shadow-md">
+                        <div className="flex items-center gap-2 font-bold text-purple-900">
+                            <Icon name="sparkles" />
+                            <span className="text-sm">SMILING ZIWEI</span>
+                        </div>
+                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] underline font-bold">
+                            {isAdmin ? 'HOME' : 'ADMIN'}
+                        </button>
+                    </nav>
+
+                    <div className="pt-24 px-6 max-w-md mx-auto grid-bg">
+                        {isAdmin ? (
+                            !isAuth ? (
+                                <div className="pixel-card p-10 text-center bg-white">
+                                    <Icon name="lock" size={40} className="mx-auto mb-6 text-purple-900" />
+                                    <h2 className="text-[10px] font-bold mb-8">ADMIN LOGIN</h2>
+                                    <input type="password" placeholder="PASSWORD" className="w-full p-3 border-2 border-black text-center mb-6 font-bold" onChange={e => setPass(e.target.value)} />
+                                    <button onClick={() => pass === "8888" ? setIsAuth(true) : alert("錯誤！")} className="pixel-btn w-full bg-purple-900 text-white p-4 font-bold">ENTER</button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center border-b-4 border-purple-100 pb-4 font-bold uppercase text-[10px]">
+                                        <h2>Records ({bookings.length})</h2>
+                                        <button onClick={()=>setIsAuth(false)} className="bg-black text-white px-2 py-1">Logout</button>
+                                    </div>
+                                    {bookings.map(b => (
+                                        <div key={b.id} className="pixel-card p-4 text-[10px] font-bold bg-white">
+                                            <div className="flex justify-between uppercase">
+                                                <span className="text-purple-900">{b.nickname}</span>
+                                                <span className="text-pink-600 border border-pink-200 px-1">{b.service}</span>
+                                            </div>
+                                            <p className="opacity-50 mt-2">Birth: {b.birthDate}</p>
+                                            <div className="mt-4 flex justify-end">
+                                                <button onClick={() => confirm('確定刪除？') && db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings').doc(b.id).delete()} className="text-red-500 underline uppercase">Delete</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )
+                        ) : (
+                            <div>
+                                <div className="pixel-card p-8 mb-10 text-center bg-white shadow-xl">
+                                    <h1 className="text-lg text-purple-900 font-bold uppercase mb-4 tracking-tighter">人類世界<br/><span className="text-pink-600">攻略小魔法</span></h1>
+                                    <p className="text-[10px] opacity-60 uppercase italic">瞇著眼就能突破未知關卡</p>
+                                </div>
+
+                                {!success ? (
+                                    <form onSubmit={submit} className="pixel-card p-6 space-y-6 bg-white shadow-lg">
+                                        <div className="text-center border-b-2 border-dashed border-purple-100 pb-4 text-[10px] font-bold">REGISTRATION</div>
+                                        <div className="space-y-4 text-[10px] font-bold">
+                                            <div>
+                                                <label className="block mb-1">暱稱 / Nickname</label>
+                                                <input required className="w-full p-3 border-2 border-black focus:bg-pink-50 outline-none" onChange={e => setForm({...form, nickname: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block mb-1">國曆生日 / Birthday</label>
+                                                <input required type="date" className="w-full p-3 border-2 border-black outline-none" onChange={e => setForm({...form, birthDate: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block mb-1">項目 / Service</label>
+                                                <select className="w-full p-3 border-2 border-black bg-white outline-none" onChange={e => setForm({...form, service: e.target.value})}>
+                                                    <option>命盤解析</option><option>流年運勢</option><option>單題問事</option><option>紫微牌卡</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <button type="submit" disabled={loading} className="pixel-btn w-full bg-pink-500 text-white p-5 font-bold shadow-lg">
+                                            {loading ? 'SENDING...' : 'START QUEST / 確認預約'}
+                                        </button>
+                                    </form>
+                                ) : (
+                                    <div className="pixel-card p-12 text-center bg-white space-y-8 shadow-xl">
+                                        <Icon name="check-circle" size={60} className="mx-auto text-green-500" />
+                                        <h2 className="text-lg text-purple-900 font-bold">MISSION COMPLETE</h2>
+                                        <button onClick={() => window.open('https://line.me/R/ti/p/@147twhth')} className="pixel-btn bg-[#06c755] text-white p-5 w-full font-bold shadow-lg">前往 LINE 聯繫</button>
+                                        <button onClick={() => setSuccess(false)} className="text-[8px] underline opacity-30 block mx-auto font-bold">BACK</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <footer className="py-12 text-center opacity-30 text-[8px] font-bold">
+                        <p>© 2026 SMILING ZIWEI STUDIO</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+

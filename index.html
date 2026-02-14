@@ -4,13 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>笑瞇瞇紫微斗數 - 人類世界攻略小魔法</title>
-    <!-- 引入穩定 CDN 函式庫 -->
+    <!-- 引入 React, Babel, Tailwind 與 Lucide 圖標 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase 傳統版 SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
 
     <style>
         :root { --p-bg: #f7d7ff; --p-border: #4a1d96; --p-pink: #ec4899; }
@@ -21,54 +26,33 @@
         h1, h2 { font-family: 'Press Start 2P', cursive; line-height: 1.5; }
         .grid-bg { background-image: radial-gradient(#4a1d96 1.5px, transparent 1.5px); background-size: 30px 30px; }
         
-        /* 🐈 像素貓咪動畫樣式 */
-        .cat-container {
+        /* 🐈 跑跑貓動畫 */
+        .cat-run {
             position: fixed;
-            bottom: 20px;
-            left: -100px;
+            bottom: 35px;
             z-index: 100;
-            animation: cat-run-across 15s linear infinite;
-            pointer-events: none; /* 讓貓咪不會擋住點擊 */
+            animation: cat-across 12s linear infinite;
+            pointer-events: none;
         }
-
-        @keyframes cat-run-across {
+        @keyframes cat-across {
             0% { left: -50px; transform: scaleX(1); }
-            45% { left: 100%; transform: scaleX(1); }
+            48% { transform: scaleX(1); }
             50% { left: 100%; transform: scaleX(-1); }
-            95% { left: -50px; transform: scaleX(-1); }
+            98% { transform: scaleX(-1); }
             100% { left: -50px; transform: scaleX(1); }
         }
-
-        .cat-pixel {
-            width: 32px;
-            height: 32px;
-            image-rendering: pixelated;
-        }
-
-        .leg-animation {
-            animation: leg-move 0.2s steps(2) infinite;
-        }
-
-        @keyframes leg-move {
-            from { transform: translateY(0); }
-            to { transform: translateY(1px); }
-        }
-
-        .social-icon:hover { transform: translateY(-4px); color: var(--p-pink); }
+        .leg-move { animation: legs 0.1s steps(2) infinite; }
+        @keyframes legs { from { transform: translateY(0); } to { transform: translateY(2px); } }
+        
+        .status-msg { font-size: 10px; padding: 10px; border: 2px solid currentColor; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- Firebase 載入 -->
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- ⚙️ Firebase 配置 ---
         const firebaseConfig = {
             apiKey: "AIzaSyB9HsfmW3iNinFZD85XxMW9Om6valo3Nf8",
             authDomain: "smiling-ziwei.firebaseapp.com",
@@ -77,36 +61,28 @@
             messagingSenderId: "447037749434",
             appId: "1:447037749434:web:b3827105adac2ecfb22a83"
         };
+        
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const appId = "smiling-ziwei-official";
 
-        // 圖標組件
         const Icon = ({ name, size = 20, className = "" }) => {
             useEffect(() => { if(window.lucide) lucide.createIcons(); }, []);
             return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
         };
 
-        // 🐈 跑跑貓組件 (純 SVG 製作)
         const RunningCat = () => (
-            <div className="cat-container">
-                <svg className="cat-pixel" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* 貓咪身體 */}
+            <div className="cat-run">
+                <svg width="40" height="40" viewBox="0 0 16 16" fill="none">
                     <rect x="4" y="6" width="8" height="6" fill="#4a1d96" />
-                    {/* 貓咪頭 */}
                     <rect x="10" y="3" width="5" height="5" fill="#4a1d96" />
-                    {/* 貓咪耳朵 */}
                     <rect x="10" y="2" width="1" height="1" fill="#4a1d96" />
                     <rect x="14" y="2" width="1" height="1" fill="#4a1d96" />
-                    {/* 眼睛 */}
                     <rect x="11" y="4" width="1" height="1" fill="white" />
                     <rect x="13" y="4" width="1" height="1" fill="white" />
-                    {/* 尾巴 */}
                     <rect x="1" y="5" width="1" height="4" fill="#4a1d96" />
-                    <rect x="2" y="8" width="2" height="1" fill="#4a1d96" />
-                    {/* 腳 (帶動畫) */}
-                    <g className="leg-animation">
+                    <g className="leg-move">
                         <rect x="5" y="12" width="2" height="2" fill="#4a1d96" />
                         <rect x="10" y="12" width="2" height="2" fill="#4a1d96" />
                     </g>
@@ -122,89 +98,121 @@
             const [bookings, setBookings] = useState([]);
             const [loading, setLoading] = useState(false);
             const [success, setSuccess] = useState(false);
+            const [status, setStatus] = useState("正在嘗試連線...");
             
             const [form, setForm] = useState({ 
-                nickname: '', gender: '男', birthDate: '', 
+                nickname: '', gender: '女', birthDate: '', 
                 birthTime: '子時 (23:00-01:00)', service: '命盤解析', notes: '' 
             });
 
-            const LINE_ID = "@147twhth";
-            const IG_ID = "smilingziwei";
+            const LINE_ID = "147twhth";
+            const IG_URL = "https://www.instagram.com/mimichen0130/";
 
             const services = [
-                { title: "命盤解析", price: "2,000", time: "60 分鐘", desc: "完整性格、十年大限、流年規劃。", icon: "user" },
-                { title: "流年運勢", price: "1,000", time: "30 分鐘", desc: "年度重點與月份吉凶掌握。", icon: "calendar" },
-                { title: "單題問事", price: "600", time: "30 分鐘", desc: "特定難題精準解答。", icon: "help-circle" },
-                { title: "紫微牌卡", price: "500", time: "15 分鐘", desc: "當下抉擇的快速引導。", icon: "dices" }
+                { title: "命盤解析", price: "2,000", time: "60 分鐘", desc: "完整性格、十年大限、流年規劃。規劃未來首選！", icon: "user" },
+                { title: "流年運勢", price: "1,000", time: "30 分鐘", desc: "解析年度重點及注意月份吉凶掌握。", icon: "calendar" },
+                { title: "單題問事", price: "600", time: "30 分鐘", desc: "針對特定難題提供解答。", icon: "help-circle" },
+                { title: "紫微牌卡", price: "500", time: "15 分鐘", desc: "適合處理當前抉擇。", icon: "dices" }
             ];
 
             useEffect(() => {
-                auth.signInAnonymously().catch(e => console.error(e));
+                auth.signInAnonymously()
+                    .then(() => setStatus("✅ 伺服器已連線"))
+                    .catch(e => setStatus("❌ 連線失敗：" + e.message));
                 return auth.onAuthStateChanged(u => setUser(u));
             }, []);
 
             useEffect(() => {
-                if (!user || !isAdmin || !isAuth) return;
-                const unsubscribe = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings')
-                    .onSnapshot(s => {
-                        const data = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                let unsubscribe;
+                if (user && isAdmin && isAuth) {
+                    setLoading(true);
+                    setStatus("正在抓取預約資料...");
+                    
+                    const colRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings');
+                    
+                    unsubscribe = colRef.onSnapshot(snapshot => {
+                        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         setBookings(data.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+                        setLoading(false);
+                        setStatus("✅ 資料同步中 (共 " + data.length + " 筆)");
+                    }, err => {
+                        setStatus("❌ 讀取失敗：權限被拒絕。請檢查 Firebase Rules 設定。");
+                        setLoading(false);
                     });
-                return () => unsubscribe();
+                }
+                return () => unsubscribe && unsubscribe();
             }, [user, isAdmin, isAuth]);
 
             const submit = async (e) => {
                 e.preventDefault();
                 setLoading(true);
                 try {
-                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings').add({
-                        ...form, createdAt: firebase.firestore.FieldValue.serverTimestamp(), status: '未處理'
+                    const colRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings');
+                    await colRef.add({
+                        ...form,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: '未處理'
                     });
                     setSuccess(true);
                     window.scrollTo(0, 0);
-                } catch(e) { alert("發送失敗！"); }
+                } catch(e) { 
+                    setStatus("❌ 提交失敗：" + e.message); 
+                }
                 setLoading(false);
             };
 
             return (
-                <div className="min-h-screen">
-                    <RunningCat /> {/* 🐈 這裡插入小貓 */}
-                    
+                <div className="min-h-screen flex flex-col">
+                    <RunningCat />
                     <nav className="fixed top-0 w-full bg-[#f7d7ff] border-b-4 border-purple-900 z-50 p-4 flex justify-between items-center shadow-md">
                         <div className="flex items-center gap-2 font-bold text-purple-900">
                             <Icon name="sparkles" />
                             <span className="text-sm">SMILING ZIWEI</span>
                         </div>
-                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] underline font-bold">
-                            {isAdmin ? 'HOME' : 'ADMIN'}
+                        <button onClick={() => { setIsAdmin(!isAdmin); setIsAuth(false); setSuccess(false); }} className="text-[10px] underline font-bold uppercase">
+                            {isAdmin ? 'Back / 首頁' : 'Admin / 後台'}
                         </button>
                     </nav>
 
-                    <div className="pt-24 px-6 max-w-xl mx-auto grid-bg min-h-screen pb-24">
+                    <main className="pt-24 px-6 max-w-xl mx-auto grid-bg flex-grow pb-24 w-full">
+                        {/* 狀態列 (僅 Admin 模式下明顯) */}
+                        {isAdmin && (
+                            <div className={`status-msg ${status.includes('❌') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                                {status}
+                            </div>
+                        )}
+
                         {isAdmin ? (
                             !isAuth ? (
                                 <div className="pixel-card p-10 text-center bg-white mt-10">
                                     <Icon name="lock" size={40} className="mx-auto mb-6 text-purple-900" />
-                                    <h2 className="text-[10px] font-bold mb-8">Admin Access</h2>
-                                    <input type="password" placeholder="PASSWORD" className="w-full p-3 border-2 border-black text-center font-bold mb-6" onChange={e => setPass(e.target.value)} />
-                                    <button onClick={() => pass === "8888" ? setIsAuth(true) : alert("密碼錯誤！")} className="pixel-btn w-full bg-purple-900 text-white p-4 font-bold">Unlock</button>
+                                    <h2 className="text-[10px] font-bold mb-8 uppercase tracking-widest">Admin Access</h2>
+                                    <form onSubmit={(e) => { e.preventDefault(); if(pass === "8888") setIsAuth(true); else setStatus("❌ 密碼錯誤！"); }}>
+                                        <input type="password" placeholder="PASSWORD" className="w-full p-3 border-2 border-black text-center font-bold mb-6 outline-none" onChange={e => setPass(e.target.value)} autoFocus />
+                                        <button type="submit" className="pixel-btn w-full bg-purple-900 text-white p-4 font-bold uppercase shadow-lg">Login</button>
+                                    </form>
                                 </div>
                             ) : (
                                 <div className="space-y-4 animate-in fade-in">
-                                    <div className="flex justify-between items-center border-b-4 border-purple-900 pb-4 uppercase font-bold text-[10px]">
-                                        <h2>Bookings ({bookings.length})</h2>
-                                        <button onClick={()=>setIsAuth(false)} className="bg-black text-white px-2 py-1">Logout</button>
+                                    <div className="flex justify-between items-center border-b-4 border-purple-900 pb-4 font-bold text-[10px] uppercase">
+                                        <h2>Bookings List ({bookings.length})</h2>
+                                        <button onClick={()=>setIsAuth(false)} className="bg-black text-white text-[8px] px-2 py-1 font-bold">LOGOUT</button>
                                     </div>
+                                    {bookings.length === 0 && !loading && (
+                                        <div className="text-center py-20 opacity-30 text-xs font-bold uppercase italic tracking-widest bg-white pixel-card">目前尚無預約資料。</div>
+                                    )}
                                     {bookings.map(b => (
-                                        <div key={b.id} className="pixel-card p-4 text-[10px] font-bold bg-white">
+                                        <div key={b.id} className="pixel-card p-4 text-[10px] font-bold bg-white mb-4">
                                             <div className="flex justify-between mb-2">
-                                                <span className="text-purple-900 uppercase">{b.nickname}</span>
-                                                <span className="text-pink-600 border px-1 border-pink-200 bg-pink-50">{b.service}</span>
+                                                <span className="text-purple-900 uppercase font-bold text-xs">{b.nickname} ({b.gender})</span>
+                                                <span className="text-pink-600 border border-pink-200 px-1 bg-pink-50">{b.service}</span>
                                             </div>
-                                            <p className="opacity-60">Birth: {b.birthDate} ({b.birthTime})</p>
-                                            {b.notes && <p className="mt-2 text-slate-500 italic font-normal">"{b.notes}"</p>}
+                                            <div className="space-y-1 opacity-70 mt-2 font-bold">
+                                                <p>國曆生日：{b.birthDate} ({b.birthTime})</p>
+                                                {b.notes && <p className="mt-2 bg-slate-50 p-2 border-l-2 border-purple-200 italic font-normal text-slate-600">備註："{b.notes}"</p>}
+                                            </div>
                                             <div className="mt-4 flex justify-end">
-                                                <button onClick={() => confirm('確定刪除？') && db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings').doc(b.id).delete()} className="text-red-500 underline uppercase">Del</button>
+                                                <button onClick={() => confirm('確定刪除？') && db.collection('artifacts').doc(appId).collection('public').doc('data').collection('bookings').doc(b.id).delete()} className="text-red-500 underline uppercase text-[8px]">Delete</button>
                                             </div>
                                         </div>
                                     ))}
@@ -212,91 +220,99 @@
                             )
                         ) : (
                             <div className="space-y-8">
-                                {/* Studio Intro */}
-                                <div className="pixel-card p-8 text-center bg-white shadow-xl">
-                                    <h1 className="text-lg md:text-xl text-purple-900 font-bold uppercase mb-4 tracking-tighter">笑瞇瞇紫微斗數<br/><span className="text-pink-600 text-sm">人類世界攻略小魔法</span></h1>
-                                    <p className="text-[11px] leading-relaxed mb-6 font-bold text-slate-600">
-                                        不講宿命，只教你拿回人生主導權。<br/>瞇著眼也能優雅通關。
-                                    </p>
+                                <div className="pixel-card p-8 text-center bg-white shadow-xl relative overflow-hidden">
+                                    <h1 className="text-lg md:text-xl text-purple-900 font-bold uppercase mb-4 tracking-tighter leading-tight">笑瞇瞇紫微斗數<br/><span className="text-pink-600 text-sm">人類世界攻略小魔法</span></h1>
+                                    <p className="text-[11px] leading-relaxed mb-6 font-bold text-slate-600 uppercase tracking-tighter">拿回人生主導權。紫微斗數是一份「人生地圖」，幫助你優雅通關。</p>
                                     <div className="flex justify-center gap-4">
                                         <button onClick={() => document.getElementById('booking-form').scrollIntoView({behavior: 'smooth'})} className="pixel-btn bg-pink-500 text-white px-4 py-2 text-[10px] font-bold">立刻預約</button>
-                                        <button onClick={() => window.open(`https://line.me/R/ti/p/@147twhth`)} className="pixel-btn bg-white px-4 py-2 text-[10px] font-bold">LINE 諮詢</button>
+                                        <button onClick={() => window.open(`https://line.me/R/ti/p/@${LINE_ID}`)} className="pixel-btn bg-white px-4 py-2 text-[10px] font-bold">LINE 諮詢</button>
                                     </div>
                                 </div>
 
-                                {/* Services */}
                                 <div className="space-y-4">
-                                    <h2 className="text-[10px] text-purple-900 font-bold border-b-4 border-purple-900 pb-1">SERVICES / 服務項目</h2>
+                                    <h2 className="text-[10px] text-purple-900 font-bold border-b-4 border-purple-900 pb-1 uppercase tracking-widest text-center">Services / 諮詢項目</h2>
                                     {services.map((s, idx) => (
                                         <div key={idx} className="pixel-card p-5 bg-white">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <div className="w-10 h-10 bg-purple-100 flex items-center justify-center border-2 border-purple-900">
+                                                <div className="w-10 h-10 bg-purple-50 flex items-center justify-center border-2 border-purple-900">
                                                     <Icon name={s.icon} className="text-purple-900" />
                                                 </div>
                                                 <div>
                                                     <h3 className="text-xs font-bold text-purple-900">{s.title}</h3>
-                                                    <div className="flex gap-2 text-[9px] font-bold">
-                                                        <span className="text-pink-600">NT$ {s.price}</span>
-                                                        <span className="text-slate-400">({s.time})</span>
+                                                    <div className="flex gap-2 items-center text-[9px] font-bold">
+                                                        <span className="text-pink-600 underline uppercase tracking-widest">NT$ {s.price}</span>
+                                                        <span className="bg-slate-100 px-1 border border-slate-200 text-slate-400">時長: {s.time}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 leading-relaxed font-bold">{s.desc}</p>
+                                            <p className="text-[10px] font-bold text-slate-500 leading-relaxed mt-2">{s.desc}</p>
                                         </div>
                                     ))}
                                 </div>
 
-                                {/* Form */}
                                 <div id="booking-form">
                                     {!success ? (
-                                        <form onSubmit={submit} className="pixel-card p-6 space-y-6 bg-white shadow-lg">
-                                            <div className="text-center border-b-2 border-dashed border-purple-100 pb-4 font-bold text-xs uppercase text-purple-900">Registration</div>
+                                        <form onSubmit={submit} className="pixel-card p-6 space-y-6 bg-white shadow-lg animate-in slide-in-from-bottom-4">
+                                            <div className="text-center border-b-2 border-dashed border-purple-100 pb-4 font-bold text-xs uppercase text-purple-900 tracking-widest">Registration</div>
                                             <div className="space-y-5 text-[10px] font-bold uppercase">
-                                                <input required placeholder="暱稱 / NICKNAME" className="w-full p-4 border-2 border-black focus:bg-pink-50 outline-none font-bold" onChange={e => setForm({...form, nickname: e.target.value})} />
-                                                <select className="w-full p-4 border-2 border-black bg-white outline-none font-bold" onChange={e => setForm({...form, service: e.target.value})}>
-                                                    {services.map(s => <option key={s.title}>{s.title} ({s.time})</option>)}
-                                                </select>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <input required type="date" className="w-full p-4 border-2 border-black outline-none font-bold" onChange={e => setForm({...form, birthDate: e.target.value})} />
-                                                    <select className="w-full p-4 border-2 border-black bg-white outline-none font-bold" onChange={e => setForm({...form, birthTime: e.target.value})}>
-                                                        <option>子時 (23-01)</option><option>丑時 (01-03)</option><option>寅時 (03-05)</option>
-                                                        <option>卯時 (05-07)</option><option>辰時 (07-09)</option><option>巳時 (09-11)</option>
-                                                        <option>午時 (11-13)</option><option>未時 (13-15)</option><option>申時 (15-17)</option>
-                                                        <option>酉時 (17-19)</option><option>戌時 (19-21)</option><option>亥時 (21-23)</option>
+                                                <div>
+                                                    <label className="block text-purple-900 mb-1">暱稱 / Nickname</label>
+                                                    <input required className="w-full p-3 border-2 border-black focus:bg-pink-50 outline-none font-bold" onChange={e => setForm({...form, nickname: e.target.value})} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-purple-900 mb-1">諮詢項目 / Service</label>
+                                                    <select className="w-full p-3 border-2 border-black bg-white outline-none font-bold" onChange={e => setForm({...form, service: e.target.value})}>
+                                                        {services.map(s => <option key={s.title}>{s.title} ({s.time})</option>)}
                                                     </select>
                                                 </div>
-                                                <textarea placeholder="備註 / NOTE" className="w-full p-4 border-2 border-black outline-none h-24 focus:bg-pink-50 resize-none font-bold" onChange={e => setForm({...form, notes: e.target.value})} />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <input required type="date" className="w-full p-3 border-2 border-black outline-none font-bold" onChange={e => setForm({...form, birthDate: e.target.value})} />
+                                                    <select className="w-full p-3 border-2 border-black bg-white outline-none font-bold text-[9px]" onChange={e => setForm({...form, birthTime: e.target.value})}>
+                                                        <option>子 (23-01)</option><option>丑 (01-03)</option><option>寅 (03-05)</option>
+                                                        <option>卯 (05-07)</option><option>辰 (07-09)</option><option>巳 (09-11)</option>
+                                                        <option>午 (11-13)</option><option>未 (13-15)</option><option>申 (15-17)</option>
+                                                        <option>酉 (17-19)</option><option>戌 (19-21)</option><option>亥 (21-23)</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-purple-900 mb-1">備註 / Note</label>
+                                                    <textarea placeholder="目前的煩惱..." className="w-full p-3 border-2 border-black outline-none h-24 focus:bg-pink-50 resize-none font-bold shadow-inner" onChange={e => setForm({...form, notes: e.target.value})} />
+                                                </div>
                                             </div>
-                                            <button type="submit" disabled={loading} className="pixel-btn w-full bg-pink-500 text-white p-5 font-bold shadow-lg text-xs uppercase tracking-widest">
-                                                {loading ? 'Sending...' : 'Start Quest / 確認預約'}
+                                            <button type="submit" disabled={loading} className="pixel-btn w-full bg-pink-500 text-white p-5 font-bold shadow-lg tracking-widest text-xs uppercase">
+                                                {loading ? 'SENDING...' : 'START QUEST / 確認預約'}
                                             </button>
                                         </form>
                                     ) : (
-                                        <div className="pixel-card p-12 text-center bg-white space-y-8 animate-in zoom-in-95">
+                                        <div className="pixel-card p-12 text-center bg-white space-y-8 shadow-xl animate-in zoom-in-95">
                                             <Icon name="check-circle" size={64} className="mx-auto text-green-500" />
                                             <h2 className="text-lg text-purple-900 font-bold uppercase tracking-tighter">Mission Clear!</h2>
-                                            <button onClick={() => window.open(`https://line.me/R/ti/p/@147twhth`)} className="pixel-btn bg-[#06c755] text-white p-5 w-full font-bold shadow-lg">前往 LINE 確認</button>
-                                            <button onClick={() => setSuccess(false)} className="text-[10px] underline opacity-30 block mx-auto font-bold uppercase mt-4">Back</button>
+                                            <p className="text-[11px] font-bold text-slate-500 leading-relaxed uppercase">預約已成功。請前往 LINE 聯繫老師確認時間。</p>
+                                            <button onClick={() => window.open(`https://line.me/R/ti/p/@${LINE_ID}`)} className="pixel-btn bg-[#06c755] text-white p-5 w-full font-bold shadow-lg text-xs uppercase tracking-widest">前往 LINE 聯繫</button>
+                                            <button onClick={() => setSuccess(false)} className="text-[10px] underline opacity-30 block mx-auto font-bold mt-4 uppercase tracking-tighter">BACK / 返回</button>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </main>
 
-                    {/* Footer with IG & LINE */}
-                    <footer className="py-12 text-center bg-white border-t-4 border-purple-900">
-                        <div className="flex justify-center gap-8 mb-6">
-                            <a href={`https://instagram.com/${IG_ID}`} target="_blank" className="social-icon flex flex-col items-center gap-1">
-                                <Icon name="instagram" size={28} />
-                                <span className="text-[8px] font-bold">IG</span>
+                    <footer className="py-12 text-center bg-white border-t-4 border-purple-900 mt-auto">
+                        <div className="flex justify-center gap-10 mb-8">
+                            <a href={IG_URL} target="_blank" className="flex flex-col items-center gap-2 hover:translate-y-[-4px] transition-transform text-purple-900 hover:text-pink-600 group">
+                                <div className="w-12 h-12 border-4 border-current flex items-center justify-center bg-white group-hover:bg-pink-50">
+                                    <Icon name="instagram" size={24} />
+                                </div>
+                                <span className="text-[8px] font-bold tracking-widest uppercase">IG / @mimichen0130</span>
                             </a>
-                            <a href={`https://line.me/R/ti/p/@147twhth`} target="_blank" className="social-icon flex flex-col items-center gap-1">
-                                <Icon name="message-circle" size={28} />
-                                <span className="text-[8px] font-bold">LINE</span>
+                            <a href={`https://line.me/R/ti/p/@${LINE_ID}`} target="_blank" className="flex flex-col items-center gap-2 hover:translate-y-[-4px] transition-transform text-purple-900 hover:text-green-600 group">
+                                <div className="w-12 h-12 border-4 border-current flex items-center justify-center bg-white group-hover:bg-green-50">
+                                    <Icon name="message-circle" size={24} />
+                                </div>
+                                <span className="text-[8px] font-bold tracking-widest uppercase">LINE / OFFICE</span>
                             </a>
                         </div>
-                        <p className="opacity-30 text-[8px] font-bold">© 2026 SMILING ZIWEI STUDIO</p>
+                        <p className="opacity-30 text-[8px] font-bold uppercase tracking-[0.3em]">© 2026 SMILING ZIWEI STUDIO | UPGRADE YOUR SOUL</p>
                     </footer>
                 </div>
             );
